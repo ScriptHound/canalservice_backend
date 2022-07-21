@@ -222,3 +222,4 @@ venv.bak/
 credentials.json
 token.json
 .env
+.vscode
