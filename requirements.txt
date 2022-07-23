@@ -10,3 +10,4 @@ django
 python-dotenv
 psycopg2-binary
 django-cors-headers
+celery
