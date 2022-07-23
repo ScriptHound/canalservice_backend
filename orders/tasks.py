@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 
 import pandas as pd
 
@@ -9,6 +10,7 @@ from orders.logic import (
     authorize,
     get_file_from_google_drive,
     download_file)
+from orders.models import Order
 
 
 def get_current_revenue_data():
@@ -57,3 +59,26 @@ def compare_google_and_db_data():
 
     difference = pd.concat([google_data, curdata, curdata]).drop_duplicates(keep=False)
     return difference
+
+
+@app.task()
+def update_database_records():
+    difference = compare_google_and_db_data()
+
+    if difference.empty:
+        return
+
+    order_numbers = list(difference['order_NO'])
+    orders: List[Order] = Order.objects.filter(order_NO__in=order_numbers)
+    to_update = []
+    for order in orders:
+        order_NO = order.order_NO
+        update_data = difference[difference['order_NO'] == order_NO]
+        delivery_time = update_data['delivery_time'].astype(str)
+        cost_dollars = update_data['cost_dollars'].astype(float)
+
+        order.delivery_time = list(delivery_time)[0]
+        order.cost_dollars = list(cost_dollars)[0]
+        to_update.append(order)
+    
+    Order.objects.bulk_update(to_update, ['cost_dollars', 'delivery_time'])
