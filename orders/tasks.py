@@ -52,6 +52,8 @@ def compare_google_and_db_data():
     curdata['cost_dollars'] = curdata['cost_dollars']\
         .apply(lambda x: float(x))
 
-    difference = pd.concat([google_data, curdata]).drop_duplicates(keep=False)
+    if google_data.equals(curdata):
+        return pd.DataFrame()
+
+    difference = pd.concat([google_data, curdata, curdata]).drop_duplicates(keep=False)
     return difference
-    
