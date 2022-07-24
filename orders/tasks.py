@@ -29,6 +29,7 @@ def timezone_column_to_date(delivery_time):
 
 
 def compare_google_and_db_data():
+    """Unify column names and data types and compare"""
     curdata = get_current_revenue_data()
     credentials = authorize("credentials.json")
     _, file_id = get_file_from_google_drive("canalservice_test", credentials)
@@ -54,6 +55,7 @@ def compare_google_and_db_data():
     google_data["cost_dollars"] = google_data["cost_dollars"].apply(lambda x: float(x))
     curdata["cost_dollars"] = curdata["cost_dollars"].apply(lambda x: float(x))
 
+    # settings indexes for proper comparison
     google_data.set_index("ord_id", inplace=True, drop=False)
     curdata.set_index("ord_id", inplace=True, drop=False)
     google_data.sort_index(inplace=True)
@@ -66,6 +68,8 @@ def compare_google_and_db_data():
     delete_difference = pd.concat([curdata, google_data, google_data]).drop_duplicates(
         keep=False
     )
+
+    # deleted records are neither updated nor created
     difference_ids = difference["ord_id"]
     delete_difference = delete_difference[
         ~delete_difference["ord_id"].isin(difference_ids)
@@ -75,6 +79,7 @@ def compare_google_and_db_data():
 
 @app.task(bind=True, name="googlesheet_check")
 def update_database_records(_):
+    """A periodic Celery task to check document updates"""
     difference, delete_difference = compare_google_and_db_data()
 
     if difference.empty:
@@ -86,6 +91,7 @@ def update_database_records(_):
     new_ord_ids = list(new_ord_ids)
     new_orders = difference[difference["ord_id"].isin(new_ord_ids)]
 
+    # update DB rows
     orders: List[Order] = Order.objects.filter(ord_id__in=order_numbers)
     exchange_rate = get_dollar_exchange_rate()
     to_update = []
@@ -102,6 +108,7 @@ def update_database_records(_):
         order.cost_roubles = cost_rubles
         to_update.append(order)
 
+    # create new DB rows
     to_create = []
     for _, order in new_orders.iterrows():
         ord_id = order["ord_id"]
@@ -125,5 +132,6 @@ def update_database_records(_):
     if delete_difference.empty:
         return
 
+    # delete DB rows
     to_delete = list(delete_difference["ord_id"].astype(int))
     Order.objects.filter(ord_id__in=to_delete).delete()

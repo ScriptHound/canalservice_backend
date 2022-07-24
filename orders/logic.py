@@ -107,6 +107,7 @@ def download_file(real_file_id, creds):
 
 
 def get_dollar_exchange_rate() -> Decimal:
+    """Find exchange rate from CBR xml data"""
     r = requests.get("http://www.cbr.ru/scripts/XML_daily.asp")
     data = r.text
     root = et.fromstring(data)
