@@ -76,14 +76,16 @@ def compare_google_and_db_data():
 
 def update_database_records():
     difference, delete_difference = compare_google_and_db_data()
-    print(delete_difference)
 
     if difference.empty:
         return
 
-    print(difference.columns)
-
     order_numbers = list(difference['ord_id'])
+    existing_orders = list(Order.objects.values_list('ord_id', flat=True))
+    new_ord_ids = filter(lambda id: id not in existing_orders, order_numbers)
+    new_ord_ids = list(new_ord_ids)
+    new_orders = difference[difference['ord_id'].isin(new_ord_ids)]
+
     orders: List[Order] = Order.objects.filter(ord_id__in=order_numbers)
     exchange_rate = get_dollar_exchange_rate()
     to_update = []
@@ -100,6 +102,29 @@ def update_database_records():
         order.cost_roubles = cost_rubles
         to_update.append(order)
     
+    to_create = []
+    for _, order in new_orders.iterrows():
+        ord_id = order['ord_id']
+        cost_dollars = Decimal(order['cost_dollars'])
+        cost_rubles = exchange_rate * cost_dollars
+        delivery_time = str(order['delivery_time'])
+
+        order_obj = Order(
+            cost_dollars=cost_dollars,
+            ord_id=ord_id,
+            cost_roubles=cost_rubles,
+            delivery_time=delivery_time
+        )
+        to_create.append(order_obj)
+
+    Order.objects.bulk_create(to_create)
     Order.objects.bulk_update(
         to_update,
         ['cost_dollars', 'delivery_time', 'cost_roubles'])
+    
+    if delete_difference.empty:
+        return
+
+    to_delete = list(delete_difference['ord_id'].astype(int))
+    Order.objects.filter(ord_id__in=to_delete).delete()
+
