@@ -13,7 +13,7 @@ def get_all_orders(request):
 
     all_orders = all_orders.values(
         'id',
-        'order_NO',
+        'ord_id',
         'cost_dollars_float',
         'cost_roubles_float',
         'delivery_time_text'

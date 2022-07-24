@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+
+  django:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    network_mode: "host"
+    depends_on:
+      - redis
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
