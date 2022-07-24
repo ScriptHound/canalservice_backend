@@ -75,7 +75,7 @@ def compare_google_and_db_data():
 
 
 @app.task(bind=True, name="googlesheet_check")
-def update_database_records():
+def update_database_records(_):
     difference, delete_difference = compare_google_and_db_data()
 
     if difference.empty:
