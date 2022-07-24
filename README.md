@@ -63,7 +63,7 @@ Google Drive API. Further information about getting credentials can be found
 `python manage.py migrate`\
 Migration will populate DB with data from current Google Drive document
 
-### Docker deployment
+### Run project
 Install Docker\
 `sudo apt install docker docker-compose`
 
@@ -73,3 +73,21 @@ Attention - PostgreSQL must be deployed as a separate service on host. It is
 not included in docker-compose.yml because PostgreSQL is a critical service
 any accidental data loss can be irreversable. Putting PostgreSQL in a 
 Docker container can be dangerous for DB data.
+
+### Run project without Docker (Optional)
+
+Install Redis and run\
+`sudo apt install redis`\
+`sudo systemctl start redis`\
+Check Redis is up\
+`sudo systemctl status redis`
+
+Run project itself:\
+`gunicorn canalservice.wsgi:application -b :8000`
+
+Run Celery:\
+`celery -A canalservice worker -n log@%h --loglevel=INFO -B`
+
+### Project formatting 
+
+`make format_project`
